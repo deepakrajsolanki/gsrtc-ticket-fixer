@@ -4,7 +4,6 @@ import subprocess
 import sys
 import re
 
-# Auto-install Playwright Chromium browser on cloud server start
 @st.cache_resource
 def install_playwright_browsers():
     try:
@@ -16,7 +15,36 @@ install_playwright_browsers()
 
 from playwright.async_api import async_playwright
 
-st.set_page_config(page_title="GSRTC Ticket Fixer", page_icon="🎫", layout="centered")
+st.set_page_config(
+    page_title="GSRTC Ticket Fixer", 
+    page_icon="🎫", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+# Hide Streamlit UI elements (Header, Footer, Main Menu, Sidebar)
+st.markdown("""
+<style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stSidebar"] {display: none;}
+    [data-testid="stHeader"] {display: none;}
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        max-width: 750px !important;
+    }
+    .developer-credit {
+        text-align: center;
+        font-size: 13px;
+        color: #888888;
+        margin-top: 25px;
+        border-top: 1px solid #333333;
+        padding-top: 12px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🎫 GSRTC Ticket PDF Fixer")
 st.write("Fix right-side cropping and download clean PDF GSRTC e-tickets.")
@@ -99,3 +127,9 @@ if st.button("Generate & Fix PDF", type="primary"):
                 )
             except Exception as e:
                 st.error(f"Error processing ticket: {str(e)}")
+
+st.markdown("""
+<div class="developer-credit">
+    Developed by <strong>Solaank Technologies</strong>
+</div>
+""", unsafe_allow_html=True)
