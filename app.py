@@ -22,14 +22,24 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Hide Streamlit UI elements (Header, Footer, Main Menu, Sidebar)
+# Hide Streamlit Embed toolbar, footer, headers completely
 st.markdown("""
 <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    [data-testid="stSidebar"] {display: none;}
-    [data-testid="stHeader"] {display: none;}
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    header {visibility: hidden !important; display: none !important;}
+    [data-testid="stSidebar"] {display: none !important;}
+    [data-testid="stHeader"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    .stAppToolbar {display: none !important;}
+    .viewerBadge_container__1QS1n {display: none !important;}
+    .viewerBadge_link__1S137 {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    div[class*="styles_viewerBadge"] {display: none !important;}
+    div[data-testid="stEmbedFooter"] {display: none !important;}
+    footer[data-testid="stFooter"] {display: none !important;}
+    footer:after {display: none !important;}
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 1rem !important;
