@@ -1,11 +1,24 @@
 import streamlit as st
 import asyncio
+import subprocess
+import sys
 import re
+
+# Auto-install Playwright Chromium browser on cloud server start
+@st.cache_resource
+def install_playwright_browsers():
+    try:
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+    except Exception as e:
+        print(f"Playwright browser install warning: {e}")
+
+install_playwright_browsers()
+
 from playwright.async_api import async_playwright
 
-st.set_page_config(page_title="GSRTC Ticket Fixer", page_icon="??", layout="centered")
+st.set_page_config(page_title="GSRTC Ticket Fixer", page_icon="🎫", layout="centered")
 
-st.title("?? GSRTC Ticket PDF Fixer")
+st.title("🎫 GSRTC Ticket PDF Fixer")
 st.write("Fix right-side cropping and download clean PDF GSRTC e-tickets.")
 
 url = st.text_input("Paste GSRTC Ticket URL:", placeholder="https://www.gsrtc.in/OPRSOnline/viewTicket.do?TKTN=...")
@@ -79,11 +92,10 @@ if st.button("Generate & Fix PDF", type="primary"):
                 pnr, pdf_data = asyncio.run(fix_gsrtc_ticket(url))
                 st.success(f"Ticket processed successfully! PNR: {pnr}")
                 st.download_button(
-                    label="?? Download Fixed PDF",
+                    label="📥 Download Fixed PDF",
                     data=pdf_data,
                     file_name=f"{pnr}_FIXED.pdf",
                     mime="application/pdf"
                 )
             except Exception as e:
                 st.error(f"Error processing ticket: {str(e)}")
-
