@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSRTC Ticket Fixer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; display: flex; flex-direction: column; align-items: center; padding: 30px; min-height: 100vh; }
+  h1 { color: #e94560; margin-bottom: 5px; }
+  p { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+  .card { background: #16213e; border-radius: 12px; padding: 25px; width: 100%; max-width: 700px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  input[type=text] { width: 100%; padding: 12px 15px; font-size: 15px; border-radius: 8px; border: 2px solid #0f3460; background: #0f3460; color: #fff; box-sizing: border-box; margin-bottom: 12px; }
+  input[type=text]:focus { outline: none; border-color: #e94560; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  button { padding: 12px 22px; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+  #btnFetch { background: #0f3460; color: #fff; }
+  #btnFetch:hover { background: #1a5276; }
+  #btnPDF { background: #e94560; color: #fff; display: none; }
+  #btnPDF:hover { background: #c0392b; }
+  #btnPrint { background: #27ae60; color: #fff; display: none; }
+  #btnPrint:hover { background: #1e8449; }
+  #status { margin-top: 15px; font-size: 14px; min-height: 20px; color: #f39c12; }
+  #previewArea { margin-top: 25px; background: #fff; border-radius: 8px; overflow: auto; display: none; }
+  #previewArea iframe { width: 100%; min-height: 800px; border: none; display: block; }
+  .tip { font-size: 12px; color: #7f8c8d; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>🎫 GSRTC Ticket Fixer</h1>
+<p>Fixes the right-side cropping bug in GSRTC e-tickets and downloads a proper uncropped PDF.</p>
+
+<div class="card">
+  <label style="font-size:13px; color:#aaa; margin-bottom:6px; display:block;">Paste GSRTC Ticket URL:</label>
+  <input type="text" id="ticketUrl" placeholder="https://www.gsrtc.in/OPRSOnline/viewTicket.do?TKTN=..." />
+  <div class="btn-row">
+    <button id="btnFetch" onclick="fetchTicket()">🔍 Load & Fix Ticket</button>
+    <button id="btnPDF" onclick="downloadPDF()">📥 Download PDF</button>
+    <button id="btnPrint" onclick="printTicket()">🖨️ Print</button>
+  </div>
+  <div id="status"></div>
+  <p class="tip">Works for any GSRTC ticket URL. The fixed preview renders below — then download the PDF.</p>
+</div>
+
+<div id="previewArea">
+  <iframe id="ticketFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+function setStatus(msg, color='#f39c12') {
+  const s = document.getElementById('status');
+  s.style.color = color;
+  s.textContent = msg;
+}
+
+async function fetchTicket() {
+  const url = document.getElementById('ticketUrl').value.trim();
+  if (!url || !url.includes('gsrtc.in')) {
+    setStatus('⚠️ Please enter a valid GSRTC ticket URL.', '#e74c3c');
+    return;
+  }
+
+  setStatus('⏳ Fetching ticket...');
+  document.getElementById('btnPDF').style.display = 'none';
+  document.getElementById('btnPrint').style.display = 'none';
+  document.getElementById('previewArea').style.display = 'none';
+
+  // Try direct fetch first, then CORS proxies
+  const proxies = [
+    url, // Direct (may work if CORS allows)
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://cors-anywhere.herokuapp.com/${url}`
+  ];
+
+  let html = null;
+  for (let proxy of proxies) {
+    try {
+      const resp = await fetch(proxy, { mode: 'cors' });
+      if (resp.ok) {
+        html = await resp.text();
+        if (html.includes('GSRTC') || html.includes('viewTicket')) break;
+      }
+    } catch(e) { /* try next */ }
+  }
+
+  if (!html || (!html.includes('GSRTC') && !html.includes('PNR'))) {
+    setStatus('❌ Could not fetch ticket directly due to browser CORS security.', '#e74c3c');
+    showManualInstructions(url);
+    return;
+  }
+
+  renderFixed(html, url);
+}
+
+function renderFixed(html, originalUrl) {
+  setStatus('🔧 Applying fixes...');
+
+  // Parse the HTML
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // FIX 1: Remove or override the broken generatePDF script that auto-triggers
+  doc.querySelectorAll('script').forEach(s => {
+    const txt = s.textContent;
+    if (txt.includes('generatePDF') || txt.includes('html2pdf') || txt.includes('window.onload') || txt.includes('onload')) {
+      s.remove();
+    }
+  });
+
+  // FIX 2: Fix all width constraints on container elements
+  doc.querySelectorAll('[style]').forEach(el => {
+    let st = el.getAttribute('style') || '';
+    st = st.replace(/width\s*:\s*\d+px/gi, 'width: 100%');
+    st = st.replace(/max-width\s*:\s*\d+px/gi, 'max-width: 100%');
+    st = st.replace(/overflow\s*:\s*hidden/gi, 'overflow: visible');
+    el.setAttribute('style', st);
+  });
+
+  // FIX 3: Fix table widths in attributes
+  doc.querySelectorAll('table').forEach(t => {
+    t.removeAttribute('width');
+    t.style.width = '100%';
+    t.style.tableLayout = 'auto';
+    t.style.maxWidth = '100%';
+  });
+
+  // FIX 4: Fix Boarding/Arrival header row 50/50 ratio
+  doc.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const text = row.innerText || '';
+    if (text.includes('Boarding From') && text.includes('Arrival') && cells.length === 2) {
+      cells[0].style.width = '50%';
+      cells[1].style.width = '50%';
+    }
+  });
+
+  // FIX 5: Fix the #content div specifically
+  const content = doc.getElementById('content');
+  if (content) {
+    content.style.width = '100%';
+    content.style.maxWidth = '100%';
+    content.style.overflow = 'visible';
+    content.style.padding = '10px';
+    content.style.boxSizing = 'border-box';
+  }
+
+  // FIX 6: Fix body and html
+  const bodyEl = doc.body;
+  if (bodyEl) {
+    bodyEl.style.width = '100%';
+    bodyEl.style.margin = '0';
+    bodyEl.style.padding = '0';
+    bodyEl.style.overflow = 'visible';
+  }
+
+  // FIX 7: Inject corrective CSS
+  const fixCSS = doc.createElement('style');
+  fixCSS.textContent = `
+    * { box-sizing: border-box !important; max-width: 100% !important; overflow-wrap: break-word; }
+    body, html { width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+    #content, .content, [id*="content"], [class*="content"] { 
+      width: 100% !important; max-width: 100% !important; overflow: visible !important; padding: 8px !important;
+    }
+    table { width: 100% !important; table-layout: auto !important; border-collapse: collapse !important; }
+    td, th { overflow: visible !important; word-break: break-word; }
+    @media print {
+      * { max-width: 100% !important; overflow: visible !important; }
+      body { width: 100% !important; }
+      table { width: 100% !important; }
+    }
+  `;
+  doc.head.appendChild(fixCSS);
+
+  // Fix image src to be absolute
+  const base = 'https://www.gsrtc.in';
+  doc.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src');
+    if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+      img.setAttribute('src', base + (src.startsWith('/') ? src : '/' + src));
+    }
+  });
+
+  // Fix link hrefs for CSS
+  doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && !href.startsWith('http')) {
+      link.setAttribute('href', base + (href.startsWith('/') ? href : '/' + href));
+    }
+  });
+
+  const fixedHtml = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
+
+  // Render in iframe
+  const frame = document.getElementById('ticketFrame');
+  frame.srcdoc = fixedHtml;
+  document.getElementById('previewArea').style.display = 'block';
+
+  window._fixedHtml = fixedHtml;
+  window._ticketUrl = originalUrl;
+
+  setTimeout(() => {
+    document.getElementById('btnPDF').style.display = 'inline-block';
+    document.getElementById('btnPrint').style.display = 'inline-block';
+    setStatus('✅ Ticket loaded and fixed! Preview below. Click Download PDF.', '#27ae60');
+  }, 1500);
+}
+
+async function downloadPDF() {
+  setStatus('⏳ Generating PDF... please wait ~5 seconds.');
+  document.getElementById('btnPDF').disabled = true;
+
+  try {
+    const frame = document.getElementById('ticketFrame');
+    const frameDoc = frame.contentDocument || frame.contentWindow.document;
+    const element = frameDoc.getElementById('content') || frameDoc.body;
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      scrollX: 0,
+      scrollY: 0,
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      windowWidth: Math.max(element.scrollWidth + 40, 1200),
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();   // 210mm
+    const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+    const margin = 5;
+    const usableW = pageWidth - (margin * 2);
+
+    const canvasW = canvas.width;
+    const canvasH = canvas.height;
+    const ratio = canvasH / canvasW;
+    const pdfImgW = usableW;
+    const pdfImgH = pdfImgW * ratio;
+
+    if (pdfImgH <= pageHeight - (margin * 2)) {
+      pdf.addImage(imgData, 'PNG', margin, margin, pdfImgW, pdfImgH);
+    } else {
+      let yPos = 0;
+      const pageImgH = pageHeight - (margin * 2);
+      while (yPos < pdfImgH) {
+        if (yPos > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, margin - yPos, pdfImgW, pdfImgH);
+        yPos += pageImgH;
+      }
+    }
+
+    let pnr = 'GSRTC_Ticket';
+    try {
+      const frameDoc2 = frame.contentDocument || frame.contentWindow.document;
+      const allText = frameDoc2.body.innerText;
+      const match = allText.match(/[A-Z]\d{9}/);
+      if (match) pnr = 'GSRTC_' + match[0];
+    } catch(e) {}
+
+    pdf.save(pnr + '_FIXED.pdf');
+    setStatus('✅ PDF downloaded successfully!', '#27ae60');
+  } catch(err) {
+    setStatus('❌ PDF error: ' + err.message + '. Try Print instead.', '#e74c3c');
+    console.error(err);
+  }
+  document.getElementById('btnPDF').disabled = false;
+}
+
+function printTicket() {
+  const frame = document.getElementById('ticketFrame');
+  frame.contentWindow.print();
+}
+
+function showManualInstructions(url) {
+  const s = document.getElementById('status');
+  s.innerHTML = `
+    ⚠️ <strong>Direct loading blocked by Browser CORS.</strong><br>
+    To fix & download your ticket:<br>
+    1. Open your GSRTC ticket URL directly in a browser tab.<br>
+    2. Press <code>Ctrl + P</code> (or Print) and select <strong>Save as PDF</strong>.<br>
+    <em>Or run the provided Python script (<code>python gsrtc_fix.py "${url}"</code>) on your local machine to automatically generate the uncropped PDF!</em>
+  `;
+}
+</script>
+</body>
+</html>
