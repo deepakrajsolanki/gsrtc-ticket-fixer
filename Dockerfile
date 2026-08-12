@@ -3,7 +3,7 @@ FROM python:3.10-slim
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Install system dependencies needed for Playwright Chromium & procps
+# Install system dependencies needed for Playwright Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     gnupg \
@@ -37,7 +37,7 @@ RUN playwright install-deps chromium
 
 COPY . .
 
-# Explicitly expose port 8080 without dynamic fallback string confusion
+# Expose Railway's default port 8080
 EXPOSE 8080
 
-CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0", "--server.enableCORS=false", "--server.enableXsrfProtection=false", "--server.headless=true"]
+CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.headless=true"]
