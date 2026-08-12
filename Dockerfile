@@ -1,6 +1,5 @@
 FROM python:3.10-slim
 
-# Prevent Python from writing .pyc files & enable unbuffered logging
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -28,21 +27,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy requirements and install python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium browser and system dependencies via CLI
+# Install Playwright Chromium binaries
 RUN playwright install chromium
 RUN playwright install-deps chromium
 
-# Copy application source code
 COPY . .
 
-# Set default PORT environment variable if Railway doesn't pass one
-ENV PORT=8501
+# Set PORT default to 8080 (matching Railway's injected port)
+ENV PORT=8080
+EXPOSE 8080
 
-EXPOSE 8501
-
-CMD ["sh", "-c", "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0"]
-
+# Disable CORS and XSRF protection so Streamlit works seamlessly behind Railway reverse proxy
+CMD ["sh", "-c", "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.enableCORS=false --server.enableXsrfProtection=false"]
