@@ -36,9 +36,8 @@ RUN playwright install-deps chromium
 
 COPY . .
 
-# Set PORT default to 8080 (matching Railway's injected port)
+# Match Railway default PORT 8080 and configure Streamlit for reverse proxy
 ENV PORT=8080
 EXPOSE 8080
 
-# Disable CORS and XSRF protection so Streamlit works seamlessly behind Railway reverse proxy
-CMD ["sh", "-c", "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.enableCORS=false --server.enableXsrfProtection=false"]
+CMD ["sh", "-c", "streamlit run app.py --server.port=8080 --server.address=0.0.0.0 --server.enableCORS=false --server.enableXsrfProtection=false --server.headless=true"]
