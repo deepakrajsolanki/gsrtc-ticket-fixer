@@ -39,8 +39,9 @@ RUN playwright install-deps chromium
 # Copy application source code
 COPY . .
 
-# Expose default port (Railway injects PORT env variable)
-EXPOSE 5000
+# Expose default port (Railway defaults to 8501 or uses PORT env variable)
+EXPOSE 8501
 
-# Start command using PORT environment variable or default 5000
-CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-5000} --server.address=0.0.0.0"]
+# Start command using PORT environment variable or default 8501
+CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0"]
+
