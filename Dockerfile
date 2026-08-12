@@ -36,8 +36,5 @@ RUN playwright install-deps chromium
 
 COPY . .
 
-# Set PORT default to 8080 (matching Railway's injected port)
-ENV PORT=8080
-EXPOSE 8080
-
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0", "--server.enableCORS=false", "--server.enableXsrfProtection=false", "--server.headless=true"]
+# Use Railway's injected $PORT variable dynamically
+CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.enableCORS=false --server.enableXsrfProtection=false --server.headless=true"]
