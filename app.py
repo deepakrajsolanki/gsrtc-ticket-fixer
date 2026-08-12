@@ -145,11 +145,4 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- RAILWAY DEPLOYMENT HOOK ---
-# This forces Streamlit to automatically bind itself to the cloud server port when run locally or inside Railway
-if __name__ == '__main__':
-    if os.environ.get("PORT"):
-        import sys
-        from streamlit.web import cli as stcli
-        sys.argv = ["streamlit", "run", __file__, "--server.port", os.environ.get("PORT"), "--server.address", "0.0.0.0"]
-        sys.exit(stcli.main())
+
