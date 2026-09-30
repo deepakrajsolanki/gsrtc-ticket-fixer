@@ -48,8 +48,8 @@
   .section-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
   
   .input-group { display: flex; flex-direction: column; gap: 10px; }
-  input[type="text"] { width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; transition: 0.2s; }
-  input[type="text"]:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(30,136,229,0.15); }
+  input[type="text"], textarea { width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; transition: 0.2s; }
+  input[type="text"]:focus, textarea:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(30,136,229,0.15); }
   
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
   button { padding: 11px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; }
@@ -63,6 +63,10 @@
   #status { font-size: 13px; margin-top: 12px; min-height: 20px; font-weight: 500; }
   #previewArea { margin-top: 20px; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; display: none; }
   #ticketFrame { width: 100%; min-height: 700px; border: none; display: block; background: #ffffff; }
+
+  /* Alternative Methods Accordion */
+  .alt-box { margin-top: 16px; padding: 12px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 13px; }
+  .bookmarklet-btn { display: inline-block; background: #0284c7; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 12px; margin: 4px 0; }
 
   /* Guide Section */
   .guide-card { background: var(--card-bg); border-radius: 14px; padding: 24px; border: 1px solid var(--border); margin-bottom: 30px; }
@@ -123,11 +127,11 @@
 
   <!-- Web Tool -->
   <div class="web-tool-card">
-    <div class="section-heading">🌐 Or Fix Ticket Online in Browser</div>
+    <div class="section-heading">🌐 Fix Ticket Online in Browser</div>
     <div class="section-sub">Paste your GSRTC ticket URL below to preview and download the fixed PDF directly.</div>
 
     <div class="input-group">
-      <input type="text" id="ticketUrl" placeholder="https://www.gsrtc.in/OPRSOnline/viewTicket.do?TKTN=..." />
+      <input type="text" id="ticketUrl" placeholder="https://www.gsrtc.in/OPRSOnline/viewTicket.do?VTKT=..." />
       <div class="btn-row">
         <button class="btn-fetch" id="btnFetch" onclick="fetchTicket()">⚡ Load &amp; Fix Ticket</button>
         <button class="btn-pdf" id="btnPDF" onclick="downloadPDF()">📥 Download A4 PDF</button>
@@ -136,6 +140,14 @@
     </div>
     
     <div id="status"></div>
+
+    <!-- Instant Bookmarklet Trick -->
+    <div class="alt-box">
+      <strong>⭐ Instant 1-Click Browser Trick (Zero Install):</strong><br>
+      Drag this button to your Bookmarks Bar: 
+      <a class="bookmarklet-btn" href="javascript:(function(){const c=document.getElementById('content');if(c){c.style.width='100%';c.style.maxWidth='none';c.style.overflow='visible';}document.body.style.width='100%';document.body.style.margin='0';document.body.style.padding='0';document.body.style.overflow='visible';document.querySelectorAll('[style]').forEach(el=>{if(['TABLE','TD','TR','TH'].includes(el.tagName))return;const st=el.getAttribute('style')||'';if(st.match(/width\s*:\s*\d+px/i)){el.setAttribute('style',st.replace(/width\s*:\s*\d+px/gi,'width:100%').replace(/overflow\s*:\s*hidden/gi,'overflow:visible'));}});document.querySelectorAll('tr').forEach(r=>{const cells=r.querySelectorAll('td');const t=r.innerText||'';if(t.includes('Boarding From')&&t.includes('Arrival')&&cells.length===2){cells[0].style.width='50%';cells[1].style.width='50%';}});window.print();})();">🚍 Fix GSRTC Ticket</a><br>
+      When viewing your ticket on GSRTC website, simply click that bookmark to fix margins and print!
+    </div>
 
     <div id="previewArea">
       <iframe id="ticketFrame" sandbox="allow-same-origin allow-scripts"></iframe>
@@ -193,32 +205,69 @@ async function fetchTicket() {
   document.getElementById('btnPrint').style.display = 'none';
   document.getElementById('previewArea').style.display = 'none';
 
-  // Attempt local server proxy first (proxy.php), fallback to CORS proxies
-  const proxies = [
-    `proxy.php?url=${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`
-  ];
-
+  // Base64 encode URL to safely bypass cPanel WAF / ModSecurity 406 rules
+  const b64 = btoa(unescape(encodeURIComponent(url)));
   let html = null;
-  for (let p of proxies) {
+  let lastError = '';
+
+  // 1. Try POST to proxy.php
+  try {
+    const formData = new FormData();
+    formData.append('b64', b64);
+    const resp = await fetch('proxy.php', { method: 'POST', body: formData });
+    if (resp.ok) {
+      const text = await resp.text();
+      if (text.includes('GSRTC') || text.includes('viewTicket') || text.includes('PNR') || text.includes('Boarding') || text.includes('ticket')) {
+        html = text;
+      } else {
+        lastError = text;
+      }
+    } else {
+      lastError = `Server returned ${resp.status}`;
+    }
+  } catch(e) {
+    lastError = e.message;
+  }
+
+  // 2. Try GET with b64 param
+  if (!html) {
     try {
-      const resp = await fetch(p);
+      const resp = await fetch('proxy.php?b64=' + encodeURIComponent(b64));
       if (resp.ok) {
         const text = await resp.text();
         if (text.includes('GSRTC') || text.includes('viewTicket') || text.includes('PNR') || text.includes('Boarding')) {
           html = text;
-          break;
         }
       }
     } catch(e) {}
   }
 
+  // 3. Try CORS proxies
   if (!html) {
-    setStatus(`⚠️ <strong>Browser Cross-Origin (CORS) restriction detected.</strong><br>
-    To fix this ticket easily:
-    <br>1. <a href="https://github.com/deepakrajsolanki/gsrtc-ticket-fixer/releases/latest/download/GSRTC_Ticket_Fixer.apk" style="color:#0284c7; font-weight:bold;">Download the Android App (.apk)</a> on your phone, or
-    <br>2. <a href="https://github.com/deepakrajsolanki/gsrtc-ticket-fixer/releases/latest/download/GSRTC_Ticket_Fixer_Windows.zip" style="color:#0284c7; font-weight:bold;">Download the Windows App</a> on your PC.`, '#dc2626');
+    const corsList = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      `https://corsproxy.io/?${encodeURIComponent(url)}`
+    ];
+    for (let c of corsList) {
+      try {
+        const resp = await fetch(c);
+        if (resp.ok) {
+          const text = await resp.text();
+          if (text.includes('GSRTC') || text.includes('viewTicket') || text.includes('PNR')) {
+            html = text;
+            break;
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  if (!html) {
+    setStatus(`⚠️ <strong>GSRTC connection restricted by network/firewall.</strong><br>
+    To fix this ticket with 100% guarantee:<br>
+    • <strong>On Android</strong>: <a href="https://github.com/deepakrajsolanki/gsrtc-ticket-fixer/releases/latest/download/GSRTC_Ticket_Fixer.apk" style="color:#0284c7; font-weight:bold;">Download the Android App (.apk)</a> (Share from Chrome ➔ Save PDF)<br>
+    • <strong>On Windows</strong>: <a href="https://github.com/deepakrajsolanki/gsrtc-ticket-fixer/releases/latest/download/GSRTC_Ticket_Fixer_Windows.zip" style="color:#0284c7; font-weight:bold;">Download the Windows App</a><br>
+    • <strong>In Chrome Browser</strong>: Use the <strong>🚍 Fix GSRTC Ticket</strong> bookmarklet above!`, '#dc2626');
     return;
   }
 
