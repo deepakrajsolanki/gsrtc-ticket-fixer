@@ -1,0 +1,30 @@
+# Binaries hosted on GitHub Releases
+*.apk
+*.zip
+
+# Temporary & Old Folders
+New GSRTC Fix App/
+
+# Gradle & Android
+.gradle/
+**/build/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python & PyInstaller
+__pycache__/
+**/__pycache__/
+*.py[cod]
+dist/
+**/dist/
+*.spec
+
+# OS & Temp
+.DS_Store
+Thumbs.db
+*.log

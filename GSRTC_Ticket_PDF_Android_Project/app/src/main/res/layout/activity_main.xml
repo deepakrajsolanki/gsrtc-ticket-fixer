@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F7FA">
+
+    <!-- Top App Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#0D47A1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:text="←"
+            android:textSize="20sp"
+            android:textColor="#FFFFFF"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/txtHeaderTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🚍 GSRTC Ticket Fixer"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp" />
+
+        <Button
+            android:id="@+id/btnPrint"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:text="📄 Save PDF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="#2E7D32"
+            android:visibility="gone"
+            android:paddingHorizontal="14dp" />
+    </LinearLayout>
+
+    <!-- Main Content Area -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- 1. Home / Input Panel -->
+        <ScrollView
+            android:id="@+id/panelHome"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Input Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#FFFFFF"
+                    android:padding="16dp"
+                    android:elevation="2dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Paste GSRTC Ticket URL"
+                        android:textColor="#212121"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Paste your ticket view link to fix margins and download PDF:"
+                        android:textColor="#757575"
+                        android:textSize="12sp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="10dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <EditText
+                            android:id="@+id/editUrl"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:hint="https://www.gsrtc.in/OPRSOnline/..."
+                            android:textSize="13sp"
+                            android:background="#F0F4F8"
+                            android:paddingHorizontal="10dp"
+                            android:singleLine="true"
+                            android:inputType="textUri" />
+
+                        <Button
+                            android:id="@+id/btnPaste"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:text="📋 Paste"
+                            android:textSize="12sp"
+                            android:background="#E2E8F0"
+                            android:textColor="#1E293B"
+                            android:layout_marginStart="6dp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnLoadTicket"
+                        android:layout_width="match_parent"
+                        android:layout_height="46dp"
+                        android:text="⚡ Fix &amp; Preview Ticket PDF"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="14sp"
+                        android:background="#1E88E5"
+                        android:layout_marginTop="12dp" />
+
+                    <Button
+                        android:id="@+id/btnOpenGSRTC"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:text="🌐 Open GSRTC Portal (Mobile Booking)"
+                        android:textColor="#0D47A1"
+                        android:textSize="13sp"
+                        android:background="?attr/selectableItemBackground"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+
+                <!-- Instructions Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#FFFFFF"
+                    android:padding="16dp"
+                    android:elevation="2dp"
+                    android:layout_marginTop="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💡 Direct Share from Chrome"
+                        android:textColor="#0D47A1"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="1. Open your GSRTC ticket in Chrome browser.\n2. Tap the Chrome menu (⋮) ➔ Share.\n3. Choose 'GSRTC Ticket Fixer'.\n4. Tap 'Save PDF' to get a complete, unclipped A4 PDF!"
+                        android:textColor="#424242"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="4dp"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
+
+                <!-- Developer Credit -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Developed by Solaank Technologies • 100% Free Utility"
+                    android:textColor="#9E9E9E"
+                    android:textSize="11sp"
+                    android:gravity="center"
+                    android:layout_marginTop="24dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- 2. Ticket View Container -->
+        <FrameLayout
+            android:id="@+id/panelWebView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <WebView
+                android:id="@+id/webView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+        </FrameLayout>
+
+    </FrameLayout>
+</LinearLayout>
